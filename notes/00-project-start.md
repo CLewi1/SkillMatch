@@ -11,7 +11,7 @@ Building an AI-powered resume analyzer that extracts skills, classifies job role
 
 ## Current Status
 - ✅ Root folder created
-- ✅ Notes folder established
+- ✅ Notes folder established  
 - ✅ Backend/, frontend/, ml_models/ folders created
 - ✅ Comprehensive .gitignore added (Python + Node + VSCode)
 - ✅ README.md updated with project description
@@ -22,14 +22,18 @@ Building an AI-powered resume analyzer that extracts skills, classifies job role
 - ✅ Basic FastAPI app created and tested
 - ✅ Development server working with auto-reload
 - ✅ **Phase 1 Complete!**
+- ✅ POST /upload endpoint created
+- ✅ PDF validation and file size limits
+- ✅ File saving to uploads/ directory
+- ✅ Metadata response with file details
+- ✅ **Phase 2 Complete!**
 
 ## Next Steps
-Ready to move to **Phase 2 - Resume Upload API**:
-1. Create POST /upload endpoint
-2. Handle PDF file uploads
-3. Save files to uploads/ folder
-4. Return file metadata (name, size)
-5. Test upload functionality
+Ready to move to **Phase 3 - PostgreSQL Integration**:
+1. Choose database (SQLite vs PostgreSQL)
+2. Create Resume model with SQLAlchemy
+3. Save file metadata to database
+4. Track upload history
 
 ## Notes Structure Plan
 - `00-project-start.md` - This file
