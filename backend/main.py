@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File
 import os
+from database import Resume, SessionLocal
 
 app = FastAPI()
 
@@ -26,6 +27,27 @@ async def upload_file(file: UploadFile = File(...)):
         f.write(content)
 
     print(f"File saved to: {file_path}")
+
+    session = SessionLocal()
+    try:
+        #Create Resume Object
+        resume = Resume(
+            filename=file.filename,
+            size=file.size,
+            user_id=None  # Optional until user management is implemented
+        )
+
+        # Add to session
+        session.add(resume)
+        # Commit
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        return {"error": str(e)}
+    finally:
+        # Close session
+        session.close()
+
 
     # return metadata
     return {
