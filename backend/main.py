@@ -1,8 +1,24 @@
 from fastapi import FastAPI, UploadFile, File
 import os
 from database import Resume, SessionLocal
+import fastapi-cors
 
 app = FastAPI()
+
+# CORS configuration
+origins = [
+    "http://localhost:3000",  # Allows React app
+    #"https://domain.com"  # Allows Production domain
+]
+
+app.add_middleware(
+    fastapi-cors.CORSMiddleware,
+    allow_origins=origins, # Allows specified origins
+    allow_credentials=True, # Allows cookies to be sent
+    allow_methods=["*"], # Allows all HTTP methods
+    allow_headers=["*"], # Allows all headers
+)
+
 
 @app.get("/")
 def read_root():
