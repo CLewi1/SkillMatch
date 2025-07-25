@@ -5,8 +5,8 @@ Building an AI-powered resume analyzer that extracts skills, classifies job role
 
 ## Architecture Decision
 - **Backend**: Python FastAPI + ML models
-- **Frontend**: React
-- **Database**: Will decide between SQLite/PostgreSQL 
+- **Frontend**: React with Vite
+- **Database**: SQLite (development) → PostgreSQL (production)
 - **ML**: Start with simple models (TF-IDF + LogisticRegression)
 
 ## Current Status
@@ -27,13 +27,26 @@ Building an AI-powered resume analyzer that extracts skills, classifies job role
 - ✅ File saving to uploads/ directory
 - ✅ Metadata response with file details
 - ✅ **Phase 2 Complete!**
+- ✅ SQLite database integration with SQLAlchemy ORM
+- ✅ Resume model with proper relationships
+- ✅ Database session lifecycle management
+- ✅ File metadata persistence and tracking
+- ✅ **Phase 3 Complete!**
+- ✅ React frontend with professional file upload interface
+- ✅ Custom drop zone with drag-and-drop functionality
+- ✅ File validation and real-time status feedback
+- ✅ Axios integration with FastAPI backend
+- ✅ CORS configuration working in Codespaces
+- ✅ End-to-end upload flow (UI → Backend → Database)
+- ✅ **Phase 4 Complete!**
 
 ## Next Steps
-Ready to move to **Phase 3 - PostgreSQL Integration**:
-1. Choose database (SQLite vs PostgreSQL)
-2. Create Resume model with SQLAlchemy
-3. Save file metadata to database
-4. Track upload history
+Ready to move to **Phase 5 - Resume Text Extraction**:
+1. Install PyMuPDF for PDF text extraction
+2. Extract clean, structured text from uploaded resumes
+3. Use spaCy for natural language processing
+4. Parse resume sections (skills, education, experience)
+5. Structure extracted data for AI analysis
 
 ## Notes Structure Plan
 - `00-project-start.md` - This file

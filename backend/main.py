@@ -1,31 +1,35 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Response
 import os
 from database import Resume, SessionLocal
-import fastapi-cors
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
 # CORS configuration
 origins = [
-    "http://localhost:3000",  # Allows React app
+    "https://turbo-engine-rx4vqr94j4r3xp5q-5173.app.github.dev",  # CodeSpaces development domain
     #"https://domain.com"  # Allows Production domain
 ]
 
+# Add CORS middleware
 app.add_middleware(
-    fastapi-cors.CORSMiddleware,
-    allow_origins=origins, # Allows specified origins
-    allow_credentials=True, # Allows cookies to be sent
-    allow_methods=["*"], # Allows all HTTP methods
-    allow_headers=["*"], # Allows all headers
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
+print("CORS middleware added successfully")  # Debug line
 
 @app.get("/")
-def read_root():
+def read_root(response: Response):
+    # Manually add CORS headers
+
     return {"msg": "SkillMatch API is live"}
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), response: Response = None):    
     # Validation checks
     if file.content_type != "application/pdf":
         return {"error": "Not a PDF File!"}
