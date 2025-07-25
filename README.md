@@ -26,9 +26,3 @@ skillmatch-ai/
 - **Frontend**: React, Axios
 - **Machine Learning**: scikit-learn, spaCy, TF-IDF
 - **Database**: SQLite/PostgreSQL
-
-## 📋 Development Status
-
-This project follows a step-by-step development approach. Current phase: **Phase 0 - Project Setup** ✅
-
-See `/notes/` for detailed development documentation.
