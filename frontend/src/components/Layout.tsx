@@ -7,7 +7,7 @@ interface LayoutProps {
 
 function Layout({ user, children }: LayoutProps) {
     return (
-        <div className="bg-gray-100">
+        <div className="">
             <header className="header">
                 <Navbar user={user}/>
             </header>

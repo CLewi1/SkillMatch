@@ -33,7 +33,7 @@ function App() {
                 <Route
                     path="/dashboard"
                     element={
-                        <ProtectedRoute user={user} element={<Dashboard onLogout={handleLogout} />} />
+                        <ProtectedRoute user={user} element={<Dashboard />} />
 
                     }
                 />
@@ -58,7 +58,7 @@ function App() {
                 <Route
                     path="/settings"
                     element={
-                        <ProtectedRoute user={user} element={<Settings />} />
+                        <ProtectedRoute user={user} element={<Settings onLogout={handleLogout} />} />
                     }
                 />
 

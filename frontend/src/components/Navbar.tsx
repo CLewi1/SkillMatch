@@ -3,8 +3,8 @@ import { NavLink } from "react-router-dom";
 function Navbar ({ user }: { user: string | null }) {
 
     return (
-        <nav className="border-red-500 border-2">
-            <h1 className="text-4xl font-bold">SkillMatch</h1>
+        <nav className="flex justify-between items-center bg-black px-10 py-4">
+            <h1 className="text-4xl font-bold text-white">SkillMatch</h1>
             <ul className="flex space-x-4">
 
                 {!user && 

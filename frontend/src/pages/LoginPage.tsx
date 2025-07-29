@@ -11,9 +11,8 @@ function LoginPage({ onLogin }: { onLogin: (userData: string) => void }) {
     };
 
     return(
-    <div className="border-b-2 border-black">
-        <h1 className="text-4xl font-bold">Welcome to SkillMatch Login Page</h1>
-        <p className="mt-4">Your one-stop solution for AI-powered skill extraction and job matching.</p>
+    <div className="border-2 border-white">
+        <h1 className="text-4xl font-bold">Login Page</h1>
         <button onClick={handleLogin}>Login Button</button>
     </div>
     );
