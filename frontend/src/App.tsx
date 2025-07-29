@@ -2,6 +2,7 @@ import { BrowserRouter } from "react-router";
 import { Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Layout from "./components/Layout";
 import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import LoginPage from "./pages/LoginPage";
@@ -13,8 +14,8 @@ import Settings from "./pages/Settings";
 function App() {
     const [user, setUser] = useState<string | null>(null);
 
-    const handleLogin = (userData: string) => {
-        setUser(userData);
+    const handleLogin = (user: string) => {
+        setUser(user);
     };
 
     const handleLogout = () => {
@@ -24,43 +25,45 @@ function App() {
 
    return (
     <BrowserRouter>
-        <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+        <Layout user={user}>
+            <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
 
-            <Route
-                path="/dashboard"
-                element={
-                    <ProtectedRoute user={user} element={<Dashboard />} />
+                <Route
+                    path="/dashboard"
+                    element={
+                        <ProtectedRoute user={user} element={<Dashboard onLogout={handleLogout} />} />
 
-                }
-            />
-            <Route
-                path="/upload"
-                element={
-                    <ProtectedRoute user={user} element={<UploadPage />} />
-                }
-            />
-            <Route
-                path="/compare"
-                element={
-                    <ProtectedRoute user={user} element={<ComparePage />} />
-                }
-            />
-            <Route
-                path="/jobs"
-                element={
-                    <ProtectedRoute user={user} element={<JobBoard />} />
-                }
-            />
-            <Route
-                path="/settings"
-                element={
-                    <ProtectedRoute user={user} element={<Settings />} />
-                }
-            />
+                    }
+                />
+                <Route
+                    path="/upload"
+                    element={
+                        <ProtectedRoute user={user} element={<UploadPage />} />
+                    }
+                />
+                <Route
+                    path="/compare"
+                    element={
+                        <ProtectedRoute user={user} element={<ComparePage />} />
+                    }
+                />
+                <Route
+                    path="/jobs"
+                    element={
+                        <ProtectedRoute user={user} element={<JobBoard />} />
+                    }
+                />
+                <Route
+                    path="/settings"
+                    element={
+                        <ProtectedRoute user={user} element={<Settings />} />
+                    }
+                />
 
-        </Routes>
+            </Routes>
+        </Layout>
     </BrowserRouter>
     );
 }
