@@ -1,135 +1,67 @@
+import { BrowserRouter } from "react-router";
+import { Routes, Route } from "react-router-dom";
 import { useState } from "react";
-import "./App.css";
-import axios from "axios";
-import { FiUpload } from "react-icons/fi";
+import ProtectedRoute from "./components/ProtectedRoute";
+import LandingPage from "./pages/LandingPage";
+import Dashboard from "./pages/Dashboard";
+import LoginPage from "./pages/LoginPage";
+import UploadPage from "./pages/UploadPage";
+import ComparePage from "./pages/ComparePage";
+import JobBoard from "./pages/JobBoard";
+import Settings from "./pages/Settings";
 
 function App() {
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [uploadStatus, setUploadStatus] = useState("idle");
+    const [user, setUser] = useState<string | null>(null);
 
-    const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-        /**
-         * Called when file input changes.
-         * event contains information about what happened
-         * React.ChangeEvent<HTMLInputElement> is typescript saying "this is an event from an HTML input element"
-         *
-         * event.target is the input element that triggered the event
-         * files is an array of files selected by the user
-         * files[0] is the first file selected (if any)
-         */
-
-        const file = event.target.files?.[0];
-
-        if (
-            file &&
-            file.type === "application/pdf" &&
-            file.size <= 5 * 1024 * 1024
-        ) {
-            setSelectedFile(file);
-            setUploadStatus("ready");
-        } else {
-            setSelectedFile(null);
-            setUploadStatus("error");
-        }
+    const handleLogin = (userData: string) => {
+        setUser(userData);
     };
 
-    const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-        // prevent default behavior
-        event?.preventDefault();
-        // Optionally add styles
+    const handleLogout = () => {
+        setUser(null);
     };
 
-    const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-        // Handle dropped files
-        event.preventDefault();
-        const file  = event.dataTransfer.files?.[0];
-        if (
-            file &&
-            file.type === "application/pdf" &&
-            file.size <= 5 * 1024 * 1024
-        ) {
-            setSelectedFile(file);
-            setUploadStatus("ready");
-        } else {
-            setSelectedFile(null);
-            setUploadStatus("error");
-        }
-    };
 
-    const uploadFile = async () => {
-        /**
-         * Uploads the selected file to the server.
-         * Uses axios to send a POST request with the file data.
-         * Displays success or error messages based on the response.
-         */
+   return (
+    <BrowserRouter>
+        <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
 
-        console.log("About to upload to:", "https://turbo-engine-rx4vqr94j4r3xp5q-8000.app.github.dev/upload");
-        console.log("Current page origin:", window.location.origin);
+            <Route
+                path="/dashboard"
+                element={
+                    <ProtectedRoute user={user} element={<Dashboard />} />
 
-        // Function to upload the selected file
-        if (!selectedFile) {
-            setUploadStatus("error");
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-
-        try {
-            const response = await axios.post("https://turbo-engine-rx4vqr94j4r3xp5q-8000.app.github.dev/upload", formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data"
                 }
-            });
-            setUploadStatus("Uploaded");
-            console.log("Upload successful:", response.data);
-        } catch (error) {
-            setUploadStatus("error");
-            console.error("Upload failed:", error);
-        }
-    };
+            />
+            <Route
+                path="/upload"
+                element={
+                    <ProtectedRoute user={user} element={<UploadPage />} />
+                }
+            />
+            <Route
+                path="/compare"
+                element={
+                    <ProtectedRoute user={user} element={<ComparePage />} />
+                }
+            />
+            <Route
+                path="/jobs"
+                element={
+                    <ProtectedRoute user={user} element={<JobBoard />} />
+                }
+            />
+            <Route
+                path="/settings"
+                element={
+                    <ProtectedRoute user={user} element={<Settings />} />
+                }
+            />
 
-    return (
-        <>
-            <h1>Upload Your Resume</h1>
-            <p>Upload your resume to get started with AI-powered skill extraction and job matching.</p>
-            <div className="main-content">
-
-                <div 
-                className="drop-zone" 
-                onDragOver={handleDragOver} 
-                onDrop={handleDrop} >
-                    <FiUpload size={50} />
-                    <input id="hidden-file-input" type="file" onChange={handleFileSelect} style={{ display: 'none' }} accept=".pdf" />
-                    <div className="file-selector">
-                        <h3>Drop Your Resume Here</h3>
-                        <p>or click to browse files</p>
-                        <button onClick={() => document.getElementById("hidden-file-input")?.click()}>Browse Files</button>
-                    </div>
-                    <div className="file-info">
-                        Supports PDF, DOC, DOCX • Maximum 5MB per file
-                    </div>
-                </div>
-
-                <div className="file-error" style={{ display: uploadStatus === "error" ? "block" : "none" }}>
-                    <p style={{ color: "red" }}>Error uploading file. Please try again.</p>
-                </div>
-
-                <div className="uploaded-files">
-                    {selectedFile ? (
-                        <div className="file-preview">
-                            <p>Selected File: {selectedFile.name}</p>
-                            <p>Size: {(selectedFile.size / 1024).toFixed(2)} KB</p>
-                            <button onClick={uploadFile}>Upload</button>
-                        </div>
-                    ) : (
-                        <p>No file selected.</p>
-                    )}
-                </div>
-
-
-            </div>
-        </>
+        </Routes>
+    </BrowserRouter>
     );
 }
 
