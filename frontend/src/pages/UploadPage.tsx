@@ -89,46 +89,45 @@ function UploadPage() {
     };
 
     return (
-        <>
+        <div className="max-w-4xl mx-auto text-center">
             <h1>Upload Your Resume</h1>
             <p>Upload your resume to get started with AI-powered skill extraction and job matching.</p>
-            <div className="main-content">
 
-                <div 
-                className="drop-zone" 
-                onDragOver={handleDragOver} 
-                onDrop={handleDrop} >
-                    <FiUpload size={50} />
-                    <input id="hidden-file-input" type="file" onChange={handleFileSelect} style={{ display: 'none' }} accept=".pdf" />
-                    <div className="file-selector">
-                        <h3>Drop Your Resume Here</h3>
-                        <p>or click to browse files</p>
-                        <button onClick={() => document.getElementById("hidden-file-input")?.click()}>Browse Files</button>
-                    </div>
-                    <div className="file-info">
-                        Supports PDF, DOC, DOCX • Maximum 5MB per file
-                    </div>
+            {/* Drag and Drop Area */}
+            <div
+                className="border-2 border-dashed rounded-2xl p-12 text-center"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+            >
+                <FiUpload size={50} className="mx-auto mb-4" />
+                <input id="hidden-file-input" type="file" onChange={handleFileSelect} className="hidden" accept=".pdf" />
+                <div className="mb-6">
+                    <h3>Drop Your Resume Here</h3>
+                    <p>or click to browse files</p>
+                    <button onClick={() => document.getElementById("hidden-file-input")?.click()}>Browse Files</button>
                 </div>
-
-                <div className="file-error" style={{ display: uploadStatus === "error" ? "block" : "none" }}>
-                    <p style={{ color: "red" }}>Error uploading file. Please try again.</p>
+                <div className="file-info">
+                    Supports PDF, DOC, DOCX • Maximum 5MB per file
                 </div>
-
-                <div className="uploaded-files">
-                    {selectedFile ? (
-                        <div className="file-preview">
-                            <p>Selected File: {selectedFile.name}</p>
-                            <p>Size: {(selectedFile.size / 1024).toFixed(2)} KB</p>
-                            <button onClick={uploadFile}>Upload</button>
-                        </div>
-                    ) : (
-                        <p>No file selected.</p>
-                    )}
-                </div>
-
-
             </div>
-        </>
+
+            <div className="file-error" style={{ display: uploadStatus === "error" ? "block" : "none" }}>
+                <p style={{ color: "red" }}>Error uploading file. Please try again.</p>
+            </div>
+
+            {/* Selected Files */}
+            <div className="border-2 rounded-2xl p-6 mt-6">
+                {selectedFile ? (
+                    <div className="file-preview">
+                        <p>Selected File: {selectedFile.name}</p>
+                        <p>Size: {(selectedFile.size / 1024).toFixed(2)} KB</p>
+                        <button onClick={uploadFile}>Upload</button>
+                    </div>
+                ) : (
+                    <p>No file selected.</p>
+                )}
+            </div>
+        </div>
     );
 }
 
