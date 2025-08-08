@@ -7,7 +7,7 @@ function ProtectedRoute ({ user, element }: { user: string | null; element: JSX.
     
     return (
         <>
-            {user ? element : <Navigate to="/login" />}
+            {user ? element : <Navigate to="/" />}
         </>
     );
 }

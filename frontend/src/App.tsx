@@ -5,14 +5,16 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
-import LoginPage from "./pages/LoginPage";
 import UploadPage from "./pages/UploadPage";
 import ComparePage from "./pages/ComparePage";
 import JobBoard from "./pages/JobBoard";
 import Settings from "./pages/Settings";
+import LoginModal from "./components/LoginModal"; // Importing LoginModal
+import TestPage from "./pages/TestPage"; // Importing TestPage
 
 function App() {
     const [user, setUser] = useState<string | null>(null);
+    const [showLoginModal, setShowLoginModal] = useState(false);
 
     const handleLogin = (user: string) => {
         setUser(user);
@@ -25,10 +27,15 @@ function App() {
 
    return (
     <BrowserRouter>
-        <Layout user={user}>
+        <LoginModal 
+            isOpen={showLoginModal} 
+            onClose={() => setShowLoginModal(false)} 
+            onLogin={handleLogin} // Pass handleLogin
+        />
+        <Layout user={user} onOpenLoginModal={() => setShowLoginModal(true)}>
             <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+                <Route path="/" element={<LandingPage user={user} onOpenLoginModal={() => setShowLoginModal(true)}/>} />
+                <Route path="/test" element={<TestPage />} /> {/* Adding TestPage route */}
 
                 <Route
                     path="/dashboard"
