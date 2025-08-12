@@ -1,10 +1,20 @@
 import { useState } from "react";
 import axios from "axios";
 import { FiUpload } from "react-icons/fi";
+import mammoth from "mammoth"; // For DOCX file handling
 
 function UploadPage() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [uploadStatus, setUploadStatus] = useState("idle");
+
+    const convertDocxToHtml = async (file: File): Promise<string> => {
+
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.convertToHtml({ arrayBuffer });
+        console.log(result.value); // Generated HTML
+        console.log(result.messages); // Warnings or messages
+        return result.value;
+    }
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         /**
@@ -21,7 +31,9 @@ function UploadPage() {
 
         if (
             file &&
-            file.type === "application/pdf" &&
+            (file.type === "application/pdf" ||
+                file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                file.type === "application/msword") &&
             file.size <= 5 * 1024 * 1024
         ) {
             setSelectedFile(file);
@@ -100,7 +112,7 @@ function UploadPage() {
                 onDrop={handleDrop}
             >
                 <FiUpload size={50} className="mx-auto mb-4" />
-                <input id="hidden-file-input" type="file" onChange={handleFileSelect} className="hidden" accept=".pdf" />
+                <input id="hidden-file-input" type="file" onChange={handleFileSelect} className="hidden" accept=".pdf, .docx, .doc" />
                 <div className="mb-6">
                     <h3>Drop Your Resume Here</h3>
                     <p>or click to browse files</p>
@@ -119,6 +131,16 @@ function UploadPage() {
             <div className="border-2 rounded-2xl p-6 mt-6">
                 {selectedFile ? (
                     <div className="file-preview">
+                        {selectedFile.type === "application/pdf" ? (
+                            <iframe src={URL.createObjectURL(selectedFile)} className="w-full h-96" title="PDF Preview"></iframe>
+                        ) : selectedFile.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || selectedFile.type === "application/msword" ? (
+                            // Use mammoth to convert DOCX to HTML
+                            convertDocxToHtml(selectedFile).then(html => {
+                                console.log("Converted HTML:", html);
+                                return <div dangerouslySetInnerHTML={{ __html: html }} className="w-full h-96"></div>;
+                            })
+                        ) : null}
+
                         <p>Selected File: {selectedFile.name}</p>
                         <p>Size: {(selectedFile.size / 1024).toFixed(2)} KB</p>
                         <button onClick={uploadFile}>Upload</button>
