@@ -10,11 +10,15 @@ Successfully implemented a **multi-page React application with protected routes 
 - **Protected routes** - Route guards that redirect unauthenticated users
 - **Consistent navigation** - Layout component with conditional navbar
 - **State preservation** - Authentication persists during client-side navigation
+- **LoginModal component** - Reusable modal with Google/GitHub login options
+- **State lifting architecture** - Global modal state managed in App.tsx
+- **Dynamic navigation** - Logo routing adapts to authentication state
 
 ### Application Architecture
 ```tsx
 // App.tsx - Central routing hub with authentication state
 const [user, setUser] = useState<string | null>(null);
+const [showLoginModal, setShowLoginModal] = useState(false);
 
 const handleLogin = (user: string) => {
     setUser(user);
@@ -24,16 +28,21 @@ const handleLogout = () => {
     setUser(null);
 };
 
-// Layout wraps all routes for consistent navigation
+// LoginModal rendered at app level for global access
 <BrowserRouter>
-    <Layout user={user}>
+    <LoginModal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)} 
+        onLogin={handleLogin}
+    />
+    <Layout user={user} onOpenLoginModal={() => setShowLoginModal(true)}>
         <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+            <Route path="/" element={<LandingPage user={user} onOpenLoginModal={() => setShowLoginModal(true)}/>} />
+            <Route path="/test" element={<TestPage />} />
             
             {/* Protected routes with authentication wrapper */}
             <Route path="/dashboard" element={
-                <ProtectedRoute user={user} element={<Dashboard onLogout={handleLogout} />} />
+                <ProtectedRoute user={user} element={<Dashboard />} />
             } />
             <Route path="/upload" element={
                 <ProtectedRoute user={user} element={<UploadPage />} />
@@ -45,7 +54,7 @@ const handleLogout = () => {
                 <ProtectedRoute user={user} element={<JobBoard />} />
             } />
             <Route path="/settings" element={
-                <ProtectedRoute user={user} element={<Settings />} />
+                <ProtectedRoute user={user} element={<Settings onLogout={handleLogout} />} />
             } />
         </Routes>
     </Layout>
@@ -54,70 +63,173 @@ const handleLogout = () => {
 
 ### Component Architecture
 
+#### LoginModal Component - New Reusable Modal
+```tsx
+// components/LoginModal.tsx - Modal-based authentication
+import { useNavigate } from "react-router-dom";
+import { X, Github } from 'lucide-react';
+
+interface LoginModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onLogin?: (user: string) => void;
+}
+
+function LoginModal({ isOpen, onClose, onLogin }: LoginModalProps) {
+    const navigate = useNavigate();
+
+    if (!isOpen) return null;
+    
+    return(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 relative">
+                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                    <X className="w-6 h-6" />
+                </button>
+                
+                <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Continue with</h2>
+                    <p className="text-gray-600">Choose a method to continue</p>
+                </div>
+                
+                <div className="space-y-4">
+                    <button 
+                        onClick={() => {
+                            if (onLogin) onLogin("Google");
+                            navigate('/jobs');
+                            onClose();
+                        }}
+                        className="w-full flex items-center justify-center gap-3 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                        <span className="text-xl">G</span>
+                        <span className="font-medium">Google</span>
+                    </button>
+                    
+                    <button 
+                        onClick={() => {
+                            if (onLogin) onLogin("Github");
+                            navigate('/jobs');
+                            onClose();
+                        }}
+                        className="w-full flex items-center justify-center gap-3 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                        <Github className="w-5 h-5" />
+                        <span className="font-medium">Github</span>
+                    </button>
+                </div>
+                
+                <div className="mt-6 text-center text-sm text-gray-500">
+                    By clicking continue, you agree to our{' '}
+                    <span className="text-teal-600 hover:underline cursor-pointer">Terms of Service</span>
+                    {' '}and{' '}
+                    <span className="text-teal-600 hover:underline cursor-pointer">Privacy Policy</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default LoginModal;
+```
+
 #### ProtectedRoute Component
 ```tsx
-// components/ProtectedRoute.tsx - Route guard pattern
+// components/ProtectedRoute.tsx - Route guard pattern  
 import { Navigate } from "react-router-dom";
 
 function ProtectedRoute({ user, element }: { user: string | null; element: JSX.Element }) {
-    return user ? element : <Navigate to="/login" />;
+    return user ? element : <Navigate to="/" replace />;
 }
 
 export default ProtectedRoute;
 ```
 
-#### Layout Component
+#### Layout Component with Props Passing
 ```tsx
-// components/Layout.tsx - Consistent page structure
+// components/Layout.tsx - Consistent page structure with modal control
 interface LayoutProps {
     user: string | null;
     children: React.ReactNode;
+    onOpenLoginModal: () => void;
 }
 
-function Layout({ user, children }: LayoutProps) {
+function Layout({ user, children, onOpenLoginModal }: LayoutProps) {
     return (
-        <div className="bg-gray-100">
-            <header className="header">
-                <Navbar user={user}/>
+        <>
+            <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-40">
+                <Navbar user={user} onOpenLoginModal={onOpenLoginModal} />
             </header>
             <main className="main-content">
                 {children}
             </main>
-        </div>
+        </>
     );
 }
+
+export default Layout;
 ```
 
-#### Navbar Component with Conditional Navigation
+#### Navbar Component with Dynamic Navigation
 ```tsx
-// components/Navbar.tsx - Authentication-aware navigation
+// components/Navbar.tsx - Authentication-aware navigation with modal integration
 import { NavLink } from "react-router-dom";
+import { FileText, Settings } from 'lucide-react';
 
-function Navbar({ user }: { user: string | null }) {
+interface NavbarProps {
+    user: string | null;
+    onOpenLoginModal: () => void;
+}
+
+function Navbar({ user, onOpenLoginModal }: NavbarProps) {
     return (
-        <nav className="border-red-500 border-2">
-            <h1 className="text-4xl font-bold">SkillMatch</h1>
-            <ul className="flex space-x-4">
-                {!user && 
-                    <>
-                        <li><NavLink to="/">Home</NavLink></li>
-                        <li><NavLink to="/login">Login</NavLink></li>
-                    </>
-                }
+        <nav className="bg-white">
+            <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between items-center h-16">
+                    {/* Dynamic logo navigation based on authentication */}
+                    <NavLink to={user ? "/dashboard" : "/"} className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-teal-500 rounded-lg flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">
+                            ResumeIQ
+                        </span>
+                    </NavLink>
 
-                {user && 
-                    <>
-                        <li><NavLink to="/dashboard">Dashboard</NavLink></li>
-                        <li><NavLink to="/upload">Upload</NavLink></li>
-                        <li><NavLink to="/jobs">Jobs</NavLink></li>
-                        <li><NavLink to="/compare">Compare</NavLink></li>
-                        <li><NavLink to="/settings">Settings</NavLink></li>
-                    </>
-                }
-            </ul>
+                    {/* Navigation Links */}
+                    <div className="flex items-center space-x-6">
+                        {!user && 
+                            <button 
+                                onClick={onOpenLoginModal}
+                                className="bg-gradient-to-r from-blue-600 to-teal-500 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-teal-600 transition-all duration-200 font-medium"
+                            >
+                                Join the beta
+                            </button>
+                        } 
+                        {user && 
+                            <>
+                                <NavLink to="/dashboard">Dashboard</NavLink>
+                                <NavLink to="/upload">Resume</NavLink>
+                                <NavLink to="/jobs">Jobs</NavLink>
+                                <NavLink to="/compare">Compare</NavLink>
+                                <NavLink to="/applied">Applied</NavLink>
+                                <NavLink to="/saved">Saved</NavLink>
+                            </>
+                        }
+                    </div>
+
+                    {/* Settings */}
+                    {user && 
+                        <NavLink to="/settings" className="flex items-center space-x-1">
+                            <Settings className="w-6 h-6" />
+                        </NavLink>
+                    }
+                </div>
+            </div>
         </nav>
     );
 }
+
+export default Navbar;
 ```
 
 ## Learning Conversation - Q&A Session
@@ -132,45 +244,194 @@ function Navbar({ user }: { user: string | null }) {
 - **Testing simplicity**: Easy to test login/logout flows without external dependencies
 - **Foundation building**: Proper route structure enables easy auth system upgrades
 
-### **Q: How should we handle route protection - per-route checks or wrapper components?**
-**Student Implementation**: ProtectedRoute wrapper component pattern
+### **Q: Should we use a separate login page or a modal for authentication?**
+**Student Implementation**: LoginModal component approach
 
-**Complete Answer**: The wrapper component pattern is industry standard because:
-- **Reusability**: Single component protects multiple routes
-- **Separation of concerns**: Route protection logic isolated from page components
-- **Maintainability**: Changes to protection logic happen in one place
-- **Readability**: Clear visual indication of which routes are protected
-- **Scalability**: Easy to add role-based permissions later
+**Complete Answer**: Modal-based authentication is excellent for modern UX because:
+- **Better user experience**: No navigation away from current page
+- **State preservation**: Users don't lose their place in the application
+- **Reusability**: Same modal can be triggered from any component (Navbar, LandingPage)
+- **Professional feel**: Modern web apps commonly use modal authentication
+- **Context retention**: Users maintain their current page context during login
 
-### **Q: Should we use React Router's Link or NavLink components for navigation?**
-**Student Choice**: NavLink for navigation items
+### **Q: How should we handle modal state - local or global?**
+**Student Implementation**: State lifting to App.tsx with props passing
 
-**Complete Answer**: NavLink is perfect for navigation menus because:
-- **Active state styling**: Can highlight current page automatically
-- **Accessibility**: Built-in ARIA attributes for screen readers
-- **Professional UX**: Users expect visual indication of current page
-- **CSS integration**: Easy to style active/inactive states with className prop
-- **Performance**: Same client-side routing benefits as Link
+**Complete Answer**: Global modal state with props passing is the right architectural choice:
+- **Single source of truth**: Modal state lives in App.tsx, not duplicated across components
+- **Props drilling clarity**: Explicit data flow makes debugging easier
+- **Component reusability**: LoginModal can be controlled by any parent component
+- **Maintainability**: Modal behavior changes happen in one place
+- **Scalability**: Easy to add modal control from new components
 
-### **Q: How should we organize page components and routing structure?**
-**Student Implementation**: Separate pages directory with placeholder components
+### **Q: How should the logo behave for different user states?**
+**Student Solution**: Dynamic routing with conditional navigation
 
-**Complete Answer**: Your organization follows React best practices:
-- **Separation of concerns**: Pages vs reusable components in different directories
-- **Scalability**: Easy to find and modify specific page components
-- **Development workflow**: Placeholder components let you build routing first, content later
-- **Team collaboration**: Clear structure helps multiple developers understand codebase
-- **Future maintenance**: Page-specific logic stays isolated
+**Complete Answer**: Conditional logo routing creates intuitive user experience:
+- **Context-aware navigation**: Logo takes users to their most relevant page
+- **Guest users**: Logo → Landing page (/) for discovery and signup
+- **Authenticated users**: Logo → Dashboard (/dashboard) for their personal space
+- **Consistent behavior**: Users develop muscle memory for logo navigation
+- **Professional UX**: Matches expectations from other modern web applications
 
-### **Q: Where should authentication state live - App.tsx or Context?**
-**Student Decision**: useState in App.tsx for Phase 4.5 simplicity
+### **Q: Where should users go after login - dashboard or jobs page?**
+**Student Implementation**: Navigate to /jobs after authentication
 
-**Complete Answer**: App.tsx state management is perfect for this phase:
-- **Learning focus**: Understand props flow before Context complexity
-- **Simple use case**: Only a few components need authentication state
-- **Props drilling**: Good to understand before learning Context patterns
-- **Debugging simplicity**: Easy to trace state changes through props
-- **Incremental learning**: Can refactor to Context when app grows larger
+**Complete Answer**: Navigating to jobs page after login is strategically smart:
+- **Value demonstration**: Immediately shows the core product functionality
+- **User engagement**: Gets users into the main workflow quickly
+- **Conversion focused**: Users see value before exploring other features
+- **Natural flow**: Job matching is likely why users signed up
+- **Easy to modify**: Can change to dashboard or other pages based on user feedback
+
+## Phase 4.5 Enhanced - LoginModal & Advanced Routing
+
+### State Lifting Implementation
+
+#### Q: How do we handle login across multiple components?
+**Problem**: We needed login functionality accessible from both Navbar and LandingPage, but didn't want duplicate modal code.
+
+**Solution**: Created a reusable LoginModal component with state lifting pattern.
+
+**Architecture**: App.tsx controls modal state, passes control functions down through Layout to child components.
+
+```tsx
+// App.tsx - Global modal state management
+function App() {
+    const [showLoginModal, setShowLoginModal] = useState(false);
+    const [user, setUser] = useState<string | null>(null);
+
+    const handleLogin = (user: string) => {
+        setUser(user);
+    };
+
+    return (
+        <BrowserRouter>
+            <LoginModal 
+                isOpen={showLoginModal} 
+                onClose={() => setShowLoginModal(false)} 
+                onLogin={handleLogin}
+            />
+            <Layout user={user} onOpenLoginModal={() => setShowLoginModal(true)}>
+                <Routes>
+                    <Route 
+                        path="/" 
+                        element={<LandingPage user={user} onOpenLoginModal={() => setShowLoginModal(true)}/>} 
+                    />
+                    {/* Other routes */}
+                </Routes>
+            </Layout>
+        </BrowserRouter>
+    );
+}
+```
+
+#### Props Flow Pattern
+
+**App.tsx** → **Layout.tsx** → **Navbar.tsx**
+
+```tsx
+// Layout.tsx - Props passing hub
+interface LayoutProps {
+    user: string | null;
+    children: React.ReactNode;
+    onOpenLoginModal: () => void;
+}
+
+function Layout({ user, children, onOpenLoginModal }: LayoutProps) {
+    return (
+        <>
+            <header>
+                <Navbar user={user} onOpenLoginModal={onOpenLoginModal} />
+            </header>
+            <main>{children}</main>
+        </>
+    );
+}
+```
+
+### Component Reusability Patterns
+
+#### LoginModal Reusability
+The LoginModal can be triggered from multiple locations:
+- **Navbar**: "Join the beta" button for guest users
+- **LandingPage**: "Start Building Your Resume" call-to-action
+- **Future components**: Any page can trigger authentication
+
+#### Dynamic Navigation Based on Authentication
+
+```tsx
+// Dynamic logo navigation
+<NavLink to={user ? "/dashboard" : "/"} className="flex items-center space-x-2">
+    <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-teal-500 rounded-lg flex items-center justify-center">
+        <FileText className="w-5 h-5 text-white" />
+    </div>
+    <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">
+        ResumeIQ
+    </span>
+</NavLink>
+
+{!user && 
+    <button onClick={onOpenLogin}>Join the beta</button>
+}
+
+{user && 
+    <>
+        <NavLink to="/dashboard">Dashboard</NavLink>
+        <NavLink to="/jobs">Jobs</NavLink>
+    </>
+}
+```
+
+### Protected Route Pattern (Reusable for any auth system)
+```tsx
+function ProtectedRoute({ user, element }: { user: string | null; element: JSX.Element }) {
+    return user ? element : <Navigate to="/" replace />;
+}
+
+// Usage in routing
+<Route path="/protected-page" element={
+    <ProtectedRoute user={user} element={<ProtectedPage />} />
+} />
+```
+
+### Reusable Modal Pattern
+```tsx
+interface ModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    children: React.ReactNode;
+}
+
+function Modal({ isOpen, onClose, children }: ModalProps) {
+    if (!isOpen) return null;
+    
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 relative">
+                <button onClick={onClose} className="absolute top-4 right-4">
+                    <X className="w-6 h-6" />
+                </button>
+                {children}
+            </div>
+        </div>
+    );
+}
+```
+
+### React Router Navigation Hook
+```tsx
+import { useNavigate } from "react-router-dom";
+
+const navigate = useNavigate();
+
+// Programmatic navigation (preserves state)
+const handleLogin = () => {
+    setUser(userData);
+    navigate("/jobs"); // No page refresh
+    onClose(); // Close modal after navigation
+};
+```
 
 ## Major Learning Discovery: React State Lifecycle
 
@@ -225,8 +486,9 @@ navigate("/dashboard");
 - **Programmatic navigation**: useNavigate hook for redirect logic
 
 ### Authentication Patterns
-- **State management**: useState for simple authentication flows
-- **Props flow**: Passing authentication state through component hierarchy
+- **Modal-based authentication**: Modern UX pattern for login flows
+- **State management**: useState for simple authentication flows with state lifting
+- **Props flow**: Passing authentication state and control functions through component hierarchy
 - **Route guards**: Protecting pages from unauthenticated access
 - **Conditional rendering**: Different UI for different user states
 
@@ -235,6 +497,7 @@ navigate("/dashboard");
 - **Protected routes**: Reusable authentication wrappers
 - **Conditional navigation**: Different nav items for different user states
 - **Props drilling**: Understanding data flow before Context
+- **Reusable modals**: Global UI components controlled by parent state
 
 ### React State Management Understanding
 - **State lifecycle**: When state is created and destroyed
@@ -244,71 +507,74 @@ navigate("/dashboard");
 
 ## Architecture Decisions Made
 
-### **Mock Authentication vs Real Authentication**
-**Decision**: Implemented mock authentication with useState
+### **LoginModal vs Separate Login Page**
+**Decision**: Implemented LoginModal component instead of dedicated login page
 **Reasoning**: 
-- Focus on learning React Router concepts first
-- Avoid complexity of JWT tokens, sessions, or external auth providers
-- Easy to test and debug authentication flows
-- Foundation for upgrading to real authentication later
+- Better user experience - no navigation away from current context
+- Reusable across multiple components (Navbar, LandingPage)
+- Modern web app UX pattern
+- Maintains user's current page context during authentication
+- Easier state management - no route changes required
 
-### **ProtectedRoute Wrapper vs Inline Checks**
-**Decision**: Created reusable ProtectedRoute wrapper component
+### **State Lifting for Modal Control**
+**Decision**: Lift modal state to App.tsx and pass control functions down through props
 **Reasoning**:
-- Industry standard pattern for route protection
-- Centralized authentication logic
-- Easy to maintain and modify protection rules
-- Clear visual indication of which routes are protected
+- Single source of truth for modal visibility
+- Multiple components can control the same modal
+- Clear, explicit data flow for debugging
+- Prevents duplicate state across components
+- Easy to extend modal functionality
 
-### **Layout Component for Navigation Consistency**
-**Decision**: Created Layout wrapper with Navbar for all pages
+### **Dynamic Logo Navigation**
+**Decision**: Logo navigates to different pages based on authentication state
 **Reasoning**:
-- Eliminates navigation code duplication across pages
-- Consistent user experience across entire application
-- Single place to update navigation design
-- Professional web application architecture
+- Intuitive user experience - logo takes users where they want to go
+- Context-aware navigation improves UX
+- Professional web application pattern
+- Reduces cognitive load - users don't need to think about where logo goes
 
-### **useState in App.tsx vs React Context**
-**Decision**: Keep authentication state in App.tsx for Phase 4.5
+### **Protected Routes Redirect to Landing Page**
+**Decision**: ProtectedRoute redirects to "/" instead of "/login"
 **Reasoning**:
-- Simpler for learning - understand props flow first
-- Limited number of components need authentication state
-- Easy to debug and trace state changes
-- Can refactor to Context when application grows
+- No separate login page - modal handles authentication
+- Landing page provides context and value proposition
+- Smoother user experience with modal-based auth
+- Maintains consistent routing structure
 
-### **7 Page Structure with Placeholders**
-**Decision**: Created placeholder components for all planned pages
+### **Navigation to Jobs After Login**
+**Decision**: LoginModal navigates users to /jobs page after authentication
 **Reasoning**:
-- Establishes complete application navigation structure
-- Enables testing of authentication flows across all routes
-- Creates foundation for future content development
-- Helps visualize final application architecture
+- Demonstrates core product value immediately
+- Gets users into main workflow quickly
+- Job matching is likely primary user goal
+- Better conversion and engagement than dashboard
 
 ## Testing Verification Completed
+
+### ✅ **LoginModal Integration Testing**
+- **Modal trigger**: Both Navbar and LandingPage can open LoginModal
+- **Modal functionality**: Close button, Google/GitHub login options work
+- **State lifting**: Modal state controlled by App.tsx, accessible globally
+- **Navigation**: Login successfully navigates to /jobs and closes modal
+- **Props flow**: App → Layout → Navbar props passing works correctly
 
 ### ✅ **Authentication Flow Testing**
 - **Login process**: Mock login updates authentication state
 - **Protected route access**: Authenticated users can access dashboard, upload, jobs, compare, settings
-- **Route protection**: Unauthenticated users redirected to login page
+- **Route protection**: Unauthenticated users redirected to landing page (not login page)
 - **Logout process**: Logout clears authentication state
 
-### ✅ **Navigation Testing**  
-- **Client-side routing**: NavLink components preserve authentication state
+### ✅ **Dynamic Navigation Testing**  
+- **Logo behavior**: Guests go to /, authenticated users go to /dashboard
+- **Conditional navbar**: Different navigation items based on auth state
 - **Page transitions**: Smooth navigation between all pages
-- **Active states**: Current page indication in navigation (when styled)
-- **Conditional navigation**: Different nav items for different user states
-
-### ✅ **State Management Testing**
-- **Props flow**: Authentication state correctly passed from App → Layout → Navbar
 - **State preservation**: Authentication persists during React Router navigation
-- **State reset**: Understanding of when/why state resets (page refresh)
-- **Component lifecycle**: Clear understanding of React state behavior
 
 ### ✅ **Component Architecture Testing**
-- **Layout consistency**: Navigation appears on all pages
+- **Layout consistency**: Navigation appears on all pages with modal integration
 - **Protected routes**: ProtectedRoute wrapper correctly guards pages
-- **Placeholder pages**: All 7 page components render correctly
-- **Route structure**: Complete routing setup with proper URL paths
+- **Modal reusability**: Same modal component used across different page contexts
+- **Props drilling**: Clean data flow from App through Layout to child components
 
 ## Debugging Challenge: useNavigate vs window.location
 
@@ -333,7 +599,7 @@ import { useNavigate } from "react-router-dom";
 const handleLogin = () => {
     const userData = "user123";  
     onLogin(userData);
-    navigate("/dashboard"); // Client-side navigation!
+    navigate("/jobs"); // Client-side navigation!
 };
 ```
 
@@ -342,7 +608,7 @@ const handleLogin = () => {
 - React app restarts completely
 - All component state returns to initial values
 - `user` state resets from authenticated back to `null`
-- ProtectedRoute sees `null` user and redirects to login
+- ProtectedRoute sees `null` user and redirects to landing page
 
 **React Router Navigation**: `useNavigate` performs client-side routing
 - No page refresh
@@ -360,32 +626,36 @@ const handleLogin = () => {
 ## Production Considerations
 
 ### Current Strengths
-- **Complete routing structure**: All 7 pages with proper navigation
-- **Authentication foundation**: Working login/logout flows
-- **Route protection**: Secured pages redirect unauthenticated users
+- **Complete routing structure**: All protected pages with proper navigation
+- **Modal-based authentication**: Modern UX with reusable components
+- **Route protection**: Secured pages redirect unauthenticated users appropriately
 - **Consistent UI**: Layout component provides uniform experience
-- **Clean architecture**: Separation of concerns across components
+- **Clean architecture**: State lifting and props flow patterns established
+- **Dynamic navigation**: Authentication-aware UI behavior
 
 ### Future Improvements for Production
 - **Persistent authentication**: localStorage or server-side sessions
 - **Real authentication**: JWT tokens, OAuth, or session cookies
 - **Role-based access**: Different permissions for different user types
 - **Enhanced navigation**: Active page styling, breadcrumbs, mobile responsive
-- **Loading states**: Skeleton screens during route transitions
+- **Loading states**: Skeleton screens during route transitions and authentication
+- **Error handling**: Network errors, authentication failures, timeout handling
 
 ### Security Considerations  
 - **Client-side auth**: Current mock auth is not secure (expected for Phase 4.5)
 - **Route protection**: ProtectedRoute prevents UI access but not API access
 - **State validation**: Future backend API needs authentication verification
 - **XSS protection**: Real authentication needs secure token storage
+- **Modal security**: Future auth modals need CSRF protection
 
 ## Ready for Phase 5 - Resume Text Extraction
 
 **Solid Multi-Page Foundation**: Users can now navigate through a complete web application with:
-- **Professional authentication**: Login/logout flows with proper state management
+- **Modern authentication**: Modal-based login/logout flows with proper state management
 - **Protected content**: Secured pages that require authentication
-- **Consistent navigation**: Professional navbar across all pages
-- **Scalable architecture**: Clean component structure ready for feature development
+- **Professional navigation**: Dynamic navbar with authentication-aware behavior
+- **Reusable components**: LoginModal and Layout patterns ready for scaling
+- **Clean architecture**: State lifting and props flow patterns established
 
 **Next Challenge**: Extract and parse text content from uploaded PDF files
 - **Backend focus**: Move from frontend routing to backend text processing
@@ -408,71 +678,9 @@ uvicorn main:app --reload
 
 # Test Authentication Flow
 # 1. Visit landing page (/)
-# 2. Try accessing /dashboard (should redirect to /login)
-# 3. Use login page to authenticate
+# 2. Click "Join the beta" in navbar (opens LoginModal)
+# 3. Click Google or GitHub (navigates to /jobs)
 # 4. Navigate to protected pages (dashboard, upload, jobs, compare, settings)
-# 5. Test logout functionality
-```
-
-## Key Code Patterns for Future Phases
-
-### Protected Route Pattern (Reusable for any auth system)
-```tsx
-function ProtectedRoute({ user, element }: { user: string | null; element: JSX.Element }) {
-    return user ? element : <Navigate to="/login" />;
-}
-
-// Usage in routing
-<Route path="/protected-page" element={
-    <ProtectedRoute user={user} element={<ProtectedPage />} />
-} />
-```
-
-### Layout Component Pattern (Consistent UI structure)
-```tsx
-interface LayoutProps {
-    user: string | null;
-    children: React.ReactNode;
-}
-
-function Layout({ user, children }: LayoutProps) {
-    return (
-        <div>
-            <Navbar user={user} />
-            <main>{children}</main>
-        </div>
-    );
-}
-```
-
-### Conditional Navigation Pattern
-```tsx
-// Authentication-aware navigation
-{!user && 
-    <>
-        <NavLink to="/">Home</NavLink>
-        <NavLink to="/login">Login</NavLink>
-    </>
-}
-
-{user && 
-    <>
-        <NavLink to="/dashboard">Dashboard</NavLink>
-        <NavLink to="/upload">Upload</NavLink>
-        {/* More authenticated routes */}
-    </>
-}
-```
-
-### React Router Navigation Hook
-```tsx
-import { useNavigate } from "react-router-dom";
-
-const navigate = useNavigate();
-
-// Programmatic navigation (preserves state)
-const handleLogin = () => {
-    setUser(userData);
-    navigate("/dashboard"); // No page refresh
-};
+# 5. Test logo navigation behavior (/ for guests, /dashboard for authenticated)
+# 6. Test logout functionality
 ```
